@@ -12,6 +12,7 @@ and open the template in the editor.
     <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
     <script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
     <script src="https://cdn.firebase.com/js/client/2.2.7/firebase.js"></script>
+    <script src="js/youtubebroadcasterfirebase.js"></script>
   </head>
   <body>
     <div id="player"></div>
@@ -23,10 +24,8 @@ and open the template in the editor.
       var firebase;
       
       $(document).ready(function() {        
-        firebase = new Firebase("https://youtubebroadcaster.firebaseio.com/");
-        
-        var videosRef = firebase.child("videos");
-        videosRef.orderByPriority().on("value", function(snapshot) {
+        firebase = new YouTubeBroadcasterFirebase();
+        firebase.onVideoListChanged(function(snapshot) {
           videoList = [];
           var stringVideoList = "";
           snapshot.forEach(function(videoRef) {
@@ -96,11 +95,8 @@ and open the template in the editor.
       
       function onVideoEnd() {
         videoListReady = false;
-        var submitterUsername = videoList[0].child("submitter").val();
         var videoId = videoList[0].key();
-        
-        firebase.child("submitters").child(submitterUsername).child(videoId).remove();
-        videoList[0].ref().remove();
+        this.firebase.removeVideo(videoId);
       }
     </script>
     
