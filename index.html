@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+  <head>
+    <title>TODO supply a title</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+    <script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+    <script src="https://cdn.firebase.com/js/client/2.2.7/firebase.js"></script>
+  </head>
+  <body>
+    <div id="player"></div>
+    <div id="videoList"></div>
+    
+    <script>
+      var player;
+      var videoList;
+      var firebase;
+      
+      $(document).ready(function() {        
+        firebase = new Firebase("https://youtubebroadcaster.firebaseio.com/");
+        
+        var videosRef = firebase.child("videos");
+        videosRef.orderByPriority().on("value", function(snapshot) {
+          videoList = [];
+          var stringVideoList = "";
+          snapshot.forEach(function(videoRef) {
+            videoList.push(videoRef);
+            stringVideoList += videoRef.key() + " by " + videoRef.child("submitter").val() + " " + "<br />";
+          });
+          $("#videoList").html(stringVideoList);
+          
+          if (!videoListReady) { // if the initial loading
+            videoListReady = true;
+            onSystemReady();
+          }
+        });
+      });
+      
+      setupYouTubeAPI();
+      
+      function setupYouTubeAPI() {
+        var tag = document.createElement("script");
+        tag.src = "https://www.youtube.com/iframe_api";
+
+        var firstScriptTag = document.getElementsByTagName("script")[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);         
+      }
+
+      function onYouTubeIframeAPIReady() {
+        player = new YT.Player("player", {
+          height: "390",
+          width: "640",
+          events: {
+            "onReady": onPlayerReady,
+            "onStateChange": onPlayerStateChange
+          }
+        });
+      }
+      
+      function onPlayerReady(event) {
+        playerReady = true;
+        onSystemReady();
+      }
+      
+      function onPlayerStateChange(event) {
+        if (event.data === YT.PlayerState.ENDED) {
+          onVideoEnd();
+        }
+      }
+      
+      function stopVideo() {
+        player.stopVideo();
+      }
+      
+      function changeVideo(id) {
+        player.loadVideoById(id, 0, "default");
+      }
+      
+      var playerReady = false;
+      var videoListReady = false;
+      function onSystemReady() {
+        if (!playerReady || !videoListReady) {
+          return;
+        }
+        
+        if (videoList.length > 0) {
+          changeVideo(videoList[0].key());
+        }
+      }
+      
+      function onVideoEnd() {
+        videoListReady = false;
+        var submitterUsername = videoList[0].child("submitter").val();
+        var videoId = videoList[0].key();
+        
+        firebase.child("submitters").child(submitterUsername).child(videoId).remove();
+        videoList[0].ref().remove();
+      }
+    </script>
+    
+    <a href="add_video.html">Add new video</a>
+  </body>
+</html>

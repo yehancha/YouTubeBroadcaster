@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+  <head>
+    <title>Add Video - YouTubeBroadcaster</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+    <script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+    <script src="https://cdn.firebase.com/js/client/2.2.7/firebase.js"></script>
+  </head>
+  <body>
+    Username: <input id="username" type="text" value="yehancha" />
+    YouTube URL: <input id="youTubeUrl" type="text" value="https://www.youtube.com/watch?v=_lDs8EziSA4&index=1&list=PLAE6EB41B485F610A"/>
+    <button id="buttonAdd">Add</button>
+  
+    <script>
+      var firebase; // firebase refference
+      
+      $(document).ready(function() {        
+        firebase = new Firebase("https://youtubebroadcaster.firebaseio.com/");
+      });
+
+      $("#buttonAdd").click(function() {
+        var username = $("#username").val();
+        var videoUrl = $("#youTubeUrl").val();
+        var videoId = getVideoId(videoUrl);
+        
+        var videoRef = firebase.child("videos").child(videoId);
+        // priority is setting to the current time so it can be sorted by the added time
+        var priority = new Date().getTime();
+        video = {
+          submitter: username,
+          rank: priority
+        };
+        videoRef.setWithPriority(video, priority);
+        
+        var submitterVideoRef = firebase.child("submitters").child(username).child(videoId);
+        submitterVideoRef.set(true);
+      });
+
+      function getVideoId(videoUrl) {
+        // A sample video url: https://www.youtube.com/watch?v=_lDs8EziSA4&index=1&list=PLAE6EB41B485F610A
+
+        // removing part before the video id
+        var startIndex = videoUrl.indexOf("v=") + 2; // +2 to remove "v=" itself
+        videoUrl = videoUrl.substring(startIndex);
+
+        // removing part after the video id
+        var endIndex = videoUrl.indexOf("&"); // starting index of the next url parameter
+        var videoId;
+        if (endIndex !== -1) {
+          videoId = videoUrl.substring(0, endIndex);          
+        } else {
+          videoId = videoUrl;
+        }
+        return videoId;
+      }
+    </script>
+  </body>
+</html>
