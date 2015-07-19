@@ -18,7 +18,7 @@ YouTubeBroadcasterFirebase.prototype.onAuthChange = function (callback) {
             callback(authData);
         }
     };
-    this.firebase.onAuth(this.authDataCallback);    
+    this.firebase.onAuth(this.authDataCallback);
 };
 
 YouTubeBroadcasterFirebase.prototype.onVideoListChanged = function (callback, cancelCallback) {
@@ -35,25 +35,33 @@ YouTubeBroadcasterFirebase.prototype.addVideo = function (videoId) {
     var auth = this.firebase.getAuth();
     var fullEmail = auth.password.email;
     // we exclude .com or .something part for username since . is not allowed in firebase
-    var username =  fullEmail.substring(0, fullEmail.indexOf("."));
-    
+    var username = fullEmail.substring(0, fullEmail.indexOf("."));
+
     if (!username) {
-        return "Not logged in";
+        return;
     }
-    
+
     var videoRef = this.firebase.child("videos").child(videoId);
+
     // priority is setting to the current time so it can be sorted by the added time
     var priority = new Date().getTime();
-    var video = {
-        submitter: username,
-        rank: priority
-    };
-    videoRef.setWithPriority(video, priority);
+    var firebase = this.firebase;
+    videoRef.transaction(function (currentData) {
+        if (currentData === null) {
+            var video = {
+                submitter: username,
+                rank: priority
+            };
+            return video;
+        }
+    }, function (error, commited, snapshot) {
+        if (commited) {
+            videoRef.setPriority(priority);
 
-    var submitterVideoRef = this.firebase.child("submitters").child(username).child(videoId);
-    submitterVideoRef.set(true);
-    
-    return null;
+            var submitterVideoRef = firebase.child("submitters").child(username).child(videoId);
+            submitterVideoRef.set(true);            
+        }
+    });
 };
 
 YouTubeBroadcasterFirebase.prototype.removeVideo = function (videoId) {
