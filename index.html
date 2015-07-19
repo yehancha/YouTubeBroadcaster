@@ -57,7 +57,8 @@ and open the template in the editor.
           width: "640",
           events: {
             "onReady": onPlayerReady,
-            "onStateChange": onPlayerStateChange
+            "onStateChange": onPlayerStateChange,
+            "onError": onPlayerError
           }
         });
       }
@@ -69,16 +70,12 @@ and open the template in the editor.
       
       function onPlayerStateChange(event) {
         if (event.data === YT.PlayerState.ENDED) {
-          onVideoEnd();
+          removeVideo();
         }
       }
       
-      function stopVideo() {
-        player.stopVideo();
-      }
-      
-      function changeVideo(id) {
-        player.loadVideoById(id, 0, "default");
+      function onPlayerError(event) {
+        removeVideo(); // we end the video since the error
       }
       
       var playerReady = false;
@@ -89,11 +86,17 @@ and open the template in the editor.
         }
         
         if (videoList.length > 0) {
-          changeVideo(videoList[0].key());
+          playVideo(videoList[0].key());
+        } else {
+          videoListReady = false;
         }
       }
       
-      function onVideoEnd() {
+      function playVideo(id) {
+        player.loadVideoById(id, 0, "default");
+      }
+      
+      function removeVideo() {
         videoListReady = false;
         var videoId = videoList[0].key();
         this.firebase.removeVideo(videoId);

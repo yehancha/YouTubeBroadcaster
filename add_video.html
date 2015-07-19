@@ -19,11 +19,20 @@ and open the template in the editor.
     YouTube URL: <input id="youTubeUrl" type="text" value="https://www.youtube.com/watch?v=_lDs8EziSA4&index=1&list=PLAE6EB41B485F610A"/>
     <button id="buttonAdd">Add</button>
   
+    <div id="videoList"></div>
+    
     <script>
       var firebase; // firebase refference
       
       $(document).ready(function() {        
         firebase = new YouTubeBroadcasterFirebase();
+        firebase.onVideoListChanged(function(snapshot) {
+          var stringVideoList = "";
+          snapshot.forEach(function(videoRef) {
+            stringVideoList += videoRef.key() + " by " + videoRef.child("submitter").val() + " " + "<br />";
+          });
+          $("#videoList").html(stringVideoList);
+        });
       });
 
       $("#buttonAdd").click(function() {
