@@ -49,17 +49,10 @@ and open the template in the editor.
           }
       }
 
-      $("#buttonAdd").click(function () {
-          var username = firebase.getEmail();
-          
-          if (!username) {
-            document.location.href = document.location.href.replace("add_video.html", "login.html");
-          }
-          
+      $("#buttonAdd").click(function () {          
           var videoUrl = $("#youTubeUrl").val();
           var videoId = getVideoId(videoUrl);
-
-          firebase.addVideo(videoId, username);
+          firebase.addVideo(videoId);
       });
 
       $("#buttonLogout").click(function () {
