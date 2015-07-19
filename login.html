@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+  <head>
+    <title>TODO supply a title</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+    <script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+    <script src="https://cdn.firebase.com/js/client/2.2.7/firebase.js"></script>
+    <script src="js/youtubebroadcasterfirebase.js"></script>
+  </head>
+  <body>
+    Email: <input id="email" type="text" /><br />
+    Password: <input id="password" type="password" /><br />
+    <button id="buttonLogin">Login</button>
+    <div id="messageArea"></div>
+
+    <script>
+      var firebase;
+
+      $(document).ready(function () {
+          firebase = new YouTubeBroadcasterFirebase();
+      });
+
+      $("#buttonLogin").click(function () {
+          $("#messageArea").html("");
+          var email = $("#email").val();
+          var password = $("#password").val();
+          firebase.login(email, password, onLoggedIn);
+      });
+
+      function onLoggedIn(error, authData) {
+          if (error) {
+              $("#messageArea").html(error);
+          } else {
+            document.location.href = document.location.href.replace("login.html", "index.html");
+          }
+      }
+    </script>
+  </body>
+</html>

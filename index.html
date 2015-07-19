@@ -14,95 +14,114 @@ and open the template in the editor.
     <script src="https://cdn.firebase.com/js/client/2.2.7/firebase.js"></script>
     <script src="js/youtubebroadcasterfirebase.js"></script>
   </head>
-  <body>
+  <body style="display:none">
+    <button id="buttonLogout">Logout</button><br />
     <div id="player"></div>
     <div id="videoList"></div>
-    
+
     <script>
       var player;
       var videoList;
       var firebase;
-      
-      $(document).ready(function() {        
-        firebase = new YouTubeBroadcasterFirebase();
-        firebase.onVideoListChanged(function(snapshot) {
-          videoList = [];
-          var stringVideoList = "";
-          snapshot.forEach(function(videoRef) {
-            videoList.push(videoRef);
-            stringVideoList += videoRef.key() + " by " + videoRef.child("submitter").val() + " " + "<br />";
-          });
-          $("#videoList").html(stringVideoList);
-          
-          if (!videoListReady) { // if the initial loading
-            videoListReady = true;
-            onSystemReady();
-          }
-        });
-      });
-      
-      setupYouTubeAPI();
-      
-      function setupYouTubeAPI() {
-        var tag = document.createElement("script");
-        tag.src = "https://www.youtube.com/iframe_api";
 
-        var firstScriptTag = document.getElementsByTagName("script")[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);         
+      $(document).ready(function () {
+          firebase = new YouTubeBroadcasterFirebase();
+          if (!firebase.isLoggedIn()) {
+              document.location.href = document.location.href.replace("index.html", "login.html");
+          }
+
+          $("body").show();
+
+          setupYouTubeAPI();
+
+          firebase.onVideoListChanged(function (snapshot) {
+              videoList = [];
+              var stringVideoList = "";
+              snapshot.forEach(function (videoRef) {
+                  videoList.push(videoRef);
+                  stringVideoList += videoRef.key() + " by " + videoRef.child("submitter").val() + " " + "<br />";
+              });
+              $("#videoList").html(stringVideoList);
+
+              if (!videoListReady) { // if the initial loading
+                  videoListReady = true;
+                  onSystemReady();
+              }
+          });
+
+          firebase.onAuthChange(onAuthChangeCallback);
+      });
+
+      $("#buttonLogout").click(function () {
+          firebase.logout();
+      });
+
+      function onAuthChangeCallback(authData) {
+          if (!authData) {
+              document.location.href = document.location.href.replace("index.html", "login.html");
+          }
+      }
+
+      function setupYouTubeAPI() {
+          var tag = document.createElement("script");
+          tag.src = "https://www.youtube.com/iframe_api";
+
+          var firstScriptTag = document.getElementsByTagName("script")[0];
+          firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
       }
 
       function onYouTubeIframeAPIReady() {
-        player = new YT.Player("player", {
-          height: "390",
-          width: "640",
-          events: {
-            "onReady": onPlayerReady,
-            "onStateChange": onPlayerStateChange,
-            "onError": onPlayerError
-          }
-        });
+          player = new YT.Player("player", {
+              height: "390",
+              width: "640",
+              events: {
+                  "onReady": onPlayerReady,
+                  "onStateChange": onPlayerStateChange,
+                  "onError": onPlayerError
+              }
+          });
       }
-      
+
       function onPlayerReady(event) {
-        playerReady = true;
-        onSystemReady();
+          playerReady = true;
+          onSystemReady();
       }
-      
+
       function onPlayerStateChange(event) {
-        if (event.data === YT.PlayerState.ENDED) {
-          removeVideo();
-        }
+          if (event.data === YT.PlayerState.ENDED) {
+              removeVideo();
+          }
       }
-      
+
       function onPlayerError(event) {
-        removeVideo(); // we end the video since the error
+          removeVideo(); // we end the video since the error
       }
-      
+
       var playerReady = false;
       var videoListReady = false;
       function onSystemReady() {
-        if (!playerReady || !videoListReady) {
-          return;
-        }
-        
-        if (videoList.length > 0) {
-          playVideo(videoList[0].key());
-        } else {
-          videoListReady = false;
-        }
+          if (!playerReady || !videoListReady) {
+              return;
+          }
+
+          if (videoList.length > 0) {
+              playVideo(videoList[0].key());
+          } else {
+              videoListReady = false;
+          }
       }
-      
+
       function playVideo(id) {
-        player.loadVideoById(id, 0, "default");
+          player.loadVideoById(id, 0, "default");
       }
-      
+
       function removeVideo() {
-        videoListReady = false;
-        var videoId = videoList[0].key();
-        this.firebase.removeVideo(videoId);
+          videoListReady = false;
+          var videoId = videoList[0].key();
+          this.firebase.removeVideo(videoId);
       }
     </script>
-    
+
     <a href="add_video.html">Add new video</a>
   </body>
 </html>

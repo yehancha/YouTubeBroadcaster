@@ -14,51 +14,74 @@ and open the template in the editor.
     <script src="https://cdn.firebase.com/js/client/2.2.7/firebase.js"></script>
     <script src="js/youtubebroadcasterfirebase.js"></script>
   </head>
-  <body>
-    Username: <input id="username" type="text" value="yehancha" />
+  <body style="display: none">
+    <button id="buttonLogout">Logout</button><br />
     YouTube URL: <input id="youTubeUrl" type="text" value="https://www.youtube.com/watch?v=_lDs8EziSA4&index=1&list=PLAE6EB41B485F610A"/>
     <button id="buttonAdd">Add</button>
-  
+
     <div id="videoList"></div>
-    
+
     <script>
       var firebase; // firebase refference
-      
-      $(document).ready(function() {        
-        firebase = new YouTubeBroadcasterFirebase();
-        firebase.onVideoListChanged(function(snapshot) {
-          var stringVideoList = "";
-          snapshot.forEach(function(videoRef) {
-            stringVideoList += videoRef.key() + " by " + videoRef.child("submitter").val() + " " + "<br />";
+
+      $(document).ready(function () {
+          firebase = new YouTubeBroadcasterFirebase();
+          if (!firebase.isLoggedIn()) {
+              document.location.href = document.location.href.replace("add_video.html", "login.html");
+          }
+
+          $("body").show();
+
+          firebase.onVideoListChanged(function (snapshot) {
+              var stringVideoList = "";
+              snapshot.forEach(function (videoRef) {
+                  stringVideoList += videoRef.key() + " by " + videoRef.child("submitter").val() + " " + "<br />";
+              });
+              $("#videoList").html(stringVideoList);
           });
-          $("#videoList").html(stringVideoList);
-        });
+
+          firebase.onAuthChange(onAuthChangeCallback);
       });
 
-      $("#buttonAdd").click(function() {
-        var username = $("#username").val();
-        var videoUrl = $("#youTubeUrl").val();
-        var videoId = getVideoId(videoUrl);
-        
-        firebase.addVideo(videoId, username);
+      function onAuthChangeCallback(authData) {
+          if (!authData) {
+              document.location.href = document.location.href.replace("add_video.html", "login.html");
+          }
+      }
+
+      $("#buttonAdd").click(function () {
+          var username = firebase.getEmail();
+          
+          if (!username) {
+            document.location.href = document.location.href.replace("add_video.html", "login.html");
+          }
+          
+          var videoUrl = $("#youTubeUrl").val();
+          var videoId = getVideoId(videoUrl);
+
+          firebase.addVideo(videoId, username);
+      });
+
+      $("#buttonLogout").click(function () {
+          firebase.logout();
       });
 
       function getVideoId(videoUrl) {
-        // A sample video url: https://www.youtube.com/watch?v=_lDs8EziSA4&index=1&list=PLAE6EB41B485F610A
+          // A sample video url: https://www.youtube.com/watch?v=_lDs8EziSA4&index=1&list=PLAE6EB41B485F610A
 
-        // removing part before the video id
-        var startIndex = videoUrl.indexOf("v=") + 2; // +2 to remove "v=" itself
-        videoUrl = videoUrl.substring(startIndex);
+          // removing part before the video id
+          var startIndex = videoUrl.indexOf("v=") + 2; // +2 to remove "v=" itself
+          videoUrl = videoUrl.substring(startIndex);
 
-        // removing part after the video id
-        var endIndex = videoUrl.indexOf("&"); // starting index of the next url parameter
-        var videoId;
-        if (endIndex !== -1) {
-          videoId = videoUrl.substring(0, endIndex);          
-        } else {
-          videoId = videoUrl;
-        }
-        return videoId;
+          // removing part after the video id
+          var endIndex = videoUrl.indexOf("&"); // starting index of the next url parameter
+          var videoId;
+          if (endIndex !== -1) {
+              videoId = videoUrl.substring(0, endIndex);
+          } else {
+              videoId = videoUrl;
+          }
+          return videoId;
       }
     </script>
   </body>
