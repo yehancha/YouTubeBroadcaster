@@ -1,5 +1,8 @@
 var YouTubeBroadcasterFirebase = function (onAuthCallback) {
     this.firebase = new Firebase("https://youtubebroadcaster.firebaseio.com/");
+    this.videosRef = this.firebase.child("videos");
+    this.submittersRef = this.firebase.child("submitters");
+    this.videoLimit = 2;  // max number of videos one submitter can add
 };
 
 YouTubeBroadcasterFirebase.prototype.isLoggedIn = function () {
@@ -22,30 +25,42 @@ YouTubeBroadcasterFirebase.prototype.onAuthChange = function (callback) {
 };
 
 YouTubeBroadcasterFirebase.prototype.onVideoListChanged = function (callback, cancelCallback) {
-    var videosRef = this.firebase.child("videos");
-    videosRef.orderByPriority().on("value", callback, cancelCallback, this);
+    this.videosRef.orderByPriority().on("value", callback, cancelCallback, this);
 };
 
 YouTubeBroadcasterFirebase.prototype.offVideoListChanged = function (callback) {
-    var videosRef = this.firebase.child("videos");
-    videosRef.off("value", callback, this);
+    this.videosRef.off("value", callback, this);
 };
 
-YouTubeBroadcasterFirebase.prototype.addVideo = function (videoId) {
+YouTubeBroadcasterFirebase.prototype.checkLimitAndAddVideo = function (videoId, failureCallback) {
     var auth = this.firebase.getAuth();
     var fullEmail = auth.password.email;
     // we exclude .com or .something part for username since . is not allowed in firebase
     var username = fullEmail.substring(0, fullEmail.indexOf("."));
 
     if (!username) {
-        return;
+        failureCallback("You are not logged in!");
     }
+    
+    var submitterRef = this.submittersRef.child(username);
+    var context = this;
+    submitterRef.once("value", function (submitterSnapshot) {
+      var numberOfVideos = submitterSnapshot.numChildren();
+      var submitterAtLimit = numberOfVideos >= context.videoLimit;
+      if (!submitterAtLimit) {
+        context.addVideo(videoId, username);
+      } else {
+        failureCallback("You are at limit!");
+      }
+    }, null, this);
+};
 
-    var videoRef = this.firebase.child("videos").child(videoId);
+YouTubeBroadcasterFirebase.prototype.addVideo = function (videoId, username) {
+    var videoRef = this.videosRef.child(videoId);
 
     // priority is setting to the current time so it can be sorted by the added time
     var priority = new Date().getTime();
-    var firebase = this.firebase;
+    var submittersRef = this.submittersRef;
     videoRef.transaction(function (currentData) {
         if (currentData === null) {
             var video = {
@@ -58,27 +73,27 @@ YouTubeBroadcasterFirebase.prototype.addVideo = function (videoId) {
         if (commited) {
             videoRef.setPriority(priority);
 
-            var submitterVideoRef = firebase.child("submitters").child(username).child(videoId);
+            var submitterVideoRef = submittersRef.child(username).child(videoId);
             submitterVideoRef.set(true);            
         }
-    });
-};
+    });  
+}
 
 YouTubeBroadcasterFirebase.prototype.removeVideo = function (videoId) {
-    var videoRef = this.firebase.child("videos").child(videoId);
+    var videoRef = this.videosRef.child(videoId);
 
     // removing video from submitter list. Fist we get the username from video
     // ref and then use it to remove the ref at submitter list
     var videoSubmitterRef = videoRef.child("submitter");
     videoSubmitterRef.once("value", function (dataSnapshot) {
         var submitterUsername = dataSnapshot.val();
-        var submitterVideoRef = this.firebase.child("submitters").child(submitterUsername).child(videoId);
+        var submitterVideoRef = this.submittersRef.child(submitterUsername).child(videoId);
         submitterVideoRef.remove();
     },
-            function (error) {
+    function (error) {
 
-            },
-            this); // YouTubeBroadcasterFirebase context
+    },
+    this); // YouTubeBroadcasterFirebase context
 
     // removing video from the videos list
     videoRef.remove();

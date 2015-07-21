@@ -18,6 +18,7 @@ and open the template in the editor.
     <button id="buttonLogout">Logout</button><br />
     YouTube URL: <input id="youTubeUrl" type="text" value="https://www.youtube.com/watch?v=_lDs8EziSA4&index=1&list=PLAE6EB41B485F610A"/>
     <button id="buttonAdd">Add</button>
+    <div id="messageArea"></div><br />
 
     <div id="videoList"></div>
 
@@ -49,10 +50,11 @@ and open the template in the editor.
           }
       }
 
-      $("#buttonAdd").click(function () {          
+      $("#buttonAdd").click(function () {
+          $("#messageArea").html("");
           var videoUrl = $("#youTubeUrl").val();
           var videoId = getVideoId(videoUrl);
-          firebase.addVideo(videoId);
+          firebase.checkLimitAndAddVideo(videoId, onError);
       });
 
       $("#buttonLogout").click(function () {
@@ -75,6 +77,10 @@ and open the template in the editor.
               videoId = videoUrl;
           }
           return videoId;
+      }
+      
+      function onError(error) {
+        $("#messageArea").html(error);
       }
     </script>
   </body>
